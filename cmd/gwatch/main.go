@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	"github.com/ardeez/gwatch/internal/config"
+	"github.com/ardeez/gwatch/internal/debounce"
 	"github.com/ardeez/gwatch/internal/logger"
 	"github.com/ardeez/gwatch/internal/runner"
 	"github.com/ardeez/gwatch/internal/watcher"
@@ -42,16 +44,20 @@ func main() {
 
 	logger.Info("Runner pipeline is ready and listening to channels.")
 
+	fileDebouncer := debounce.New(time.Duration(cfg.Interval))
+
 	fileWatcher := watcher.New(cfg)
 	if err := fileWatcher.CreateSnapshot(); err != nil {
 		logger.Error("Failed to initialize filesystem snapshot: %v", err)
 		os.Exit(1)
 	}
 	fileWatcher.StartPolling(func() {
-		select {
-		case rebuildChan <- struct{}{}:
-		default:
-		}
+		fileDebouncer.Debounce(func() {
+			logger.Warn("Debounce expired. Sending empty signal to rebuild channel...")
+			select {
+			case rebuildChan <- struct{}{}:
+			default:
+			}
+		})
 	})
-
 }

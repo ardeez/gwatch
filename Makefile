@@ -1,2 +1,2 @@
 build:
-	rm -rf gowatch && go build -o gwatch cmd/gwatch/main.go
+	rm -rf gwatch && go build -ldflags="-s -w" -o gwatch cmd/gwatch/main.go

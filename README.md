@@ -41,6 +41,23 @@ gwatch -entry ./cmd/server -dir . -ext .go -exclude vendor,tmp -interval 500
 
 ---
 
+
+watcher/watcher.go
+  └── Performs recursive WalkDir cycles every -interval ms
+  └── Detects discrepancies between live filesystem modTime signatures and the snapshot map
+  └── Invokes the debounce loop if any variation is observed
+
+debounce/debounce.go
+  └── Enforces atomic operations via sync.Mutex locking
+  └── Destroys existing timers and recalibrates a 300ms window (via time.AfterFunc) on incoming calls
+  └── On total silent timeout execution -> pipes an empty struct{}{} downstream
+
+runner/runner.go
+  └── Consumes signals asynchronously from the orchestration channel
+  └── Launches go build with micro-optimization flags (-ldflags="-s -w")
+  └── On compilation failure: isolates and prints raw stderr output, keeps previous executable intact
+  └── On compilation success: safely invokes Kill() and Wait() on previous PIDs, instantiates the fresh process
+
 ## Quality Attributes
 
 ### Reliability
@@ -111,19 +128,23 @@ main.go        watcher        debounce       channel        runner         files
 
 ---
 
-## Component Overview
-
-```
 gwatch/
-├── main.go        — flag parsing, wires all components together
-├── watcher.go     — poll loop, snapshot comparison, triggers debounce
-├── debounce.go    — 300ms debounce timer, sends signal to channel
-└── runner.go      — receives signal, builds binary, manages process lifecycle
-```
-
----
-
-## Internal Data Flow
+├── cmd/
+│   └── gwatch/
+│       └── main.go        # Application entry point, flag parsing, and wiring orchestration
+├── internal/
+│   ├── config/
+│   │   └── config.go      # Flag struct schemas, constraints validation, and path evaluations
+│   ├── debounce/
+│   │   └── debounce.go    # Thread-safe event throttling utilizing a mutation-locked delay timer
+│   ├── logger/
+│   │   └── logger.go      # Observability layer printing custom-formatted ANSI color-coded lines
+│   ├── runner/
+│   │   └── runner.go      # OS process coordinator, compilation engine (-ldflags), and zombie clean-up
+│   └── watcher/
+│       └── watcher.go     # File polling loop, recursive walking, state snapshotting, and recovery
+├── go.mod                 # Go module file utilizing pure standard library
+└── README.md              # Technical specifications and documentation## Internal Data Flow
 
 ```
 watcher.go
