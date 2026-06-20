@@ -30,8 +30,8 @@ func ParseConfig() (*Config, error) {
 
 	var excludes []string
 	if *excludeRaw != "" {
-		parts := strings.Split(*excludeRaw, ",")
-		for _, part := range parts {
+		parts := strings.SplitSeq(*excludeRaw, ",")
+		for part := range parts {
 			trimmed := strings.TrimSpace(part)
 			if trimmed != "" {
 				excludes = append(excludes, filepath.Clean(trimmed))

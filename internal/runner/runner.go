@@ -24,7 +24,7 @@ func New(config *config.Config) *Runner {
 }
 
 func (r *Runner) Build() error {
-	logger.Info("Compiling project: go build -o %s %s ...", r.binaryPath, r.config.Entry)
+	logger.Info("Compiling: go build  -o %s %s", r.binaryPath, r.config.Entry)
 
 	err := os.MkdirAll(filepath.Dir(r.binaryPath), 0755)
 	if err != nil {
